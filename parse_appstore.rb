@@ -14,7 +14,7 @@ options = {
 }
 
 op = OptionParser.new do |opts|
-	opts.banner = "Usage: #{$0} [options] appstore_id"
+	opts.banner = "Usage: #{$0} [options] appstore_id [outputfile.csv]"
 
 	opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
 		options[:verbose] = v
@@ -49,27 +49,41 @@ end
 
 appstore_id = ARGV[0]
 
+outfile = "-"
 
-(1..options[:pages]).each do |pageno|
+if ARGV.length > 1
+	outfile = ARGV[1]
+end
 
-	open("https://itunes.apple.com/WebObjects/MZStore.woa/wa/customerReviews?displayable-kind=11&id=#{appstore_id}&page=#{pageno}&sort=4",
-		"User-Agent" => "iTunes/10.3.1 (Macintosh; Intel Mac OS X 10.6.8) AppleWebKit/533.21.1",
-		"X-Apple-Store-Front" => options[:storefront_id]) do |f|
-		
 
-		contents = f.read
-
-		doc = Nokogiri::HTML(contents)
-
-		rows = []
-
-		doc.css(".customer-review").each do |review|
-			date = review.css(".user-info").first.children.last.to_html.split("\n")[6].strip
-			rating = review.css(".rating").first.get_attribute("aria-label")[0]
-			title = review.css(".customerReviewTitle").inner_html
-			review = review.css(".content").inner_html.strip
-			puts [date, rating, title, review].to_csv
-		end
-
+begin
+	if outfile == "-"
+		out = STDOUT
+	else
+		out = File.open(outfile, "w")
 	end
+
+	(1..options[:pages]).each do |pageno|
+
+		open("https://itunes.apple.com/WebObjects/MZStore.woa/wa/customerReviews?displayable-kind=11&id=#{appstore_id}&page=#{pageno}&sort=4",
+			"User-Agent" => "iTunes/10.3.1 (Macintosh; Intel Mac OS X 10.6.8) AppleWebKit/533.21.1",
+			"X-Apple-Store-Front" => options[:storefront_id]) do |io|
+			
+
+			contents = io.read
+
+			doc = Nokogiri::HTML(contents)
+
+			doc.css(".customer-review").each do |review|
+				date = review.css(".user-info").first.children.last.to_html.split("\n")[6].strip
+				rating = review.css(".rating").first.get_attribute("aria-label")[0]
+				title = review.css(".customerReviewTitle").inner_html
+				review = review.css(".content").inner_html.strip
+				out.puts [date, rating, title, review].to_csv
+			end
+
+		end
+	end
+ensure
+	out.close
 end
