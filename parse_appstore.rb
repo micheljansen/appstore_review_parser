@@ -9,8 +9,8 @@ require "json"
 stores = JSON::parse(File.read("stores.json"))
 
 options = {
-	pages: 1
-	#storefront_id: "143452,12" #Nederland
+	pages: 1,
+	storefront_id: "143452,12" #Nederland
 }
 
 op = OptionParser.new do |opts|
@@ -35,9 +35,12 @@ op = OptionParser.new do |opts|
 end
 
 op.parse!
-p options
 
-p stores["Nederland"]
+if options[:verbose]
+	options.each_pair do |o|
+		STDERR.puts "\t"+ o.join(":\t")
+	end	
+end
 
 if ARGV.length < 1 
 	STDERR.puts op.banner
